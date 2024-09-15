@@ -1,101 +1,53 @@
-use std::io;
-use std::io::Write;
+use std::io::{self, Write};
 
 fn main() {
-    let mut input = [(0, 0, 0, 0); 16];
-    let mut output = Vec::new();
+    // 8 bits for multiplicand and multiplier
 
-    println!(" A  B  C  D  |  Y ");
-    println!("------------------");
+    print!("Enter multiplicand: ");
+    io::stdout().flush().unwrap();
+    let mut BR = String::new();
+    io::stdin()
+        .read_line(&mut BR)
+        .expect("Failed to read input");
+    let mut BR = BR.trim().parse::<i32>().expect("Failed to parse input");
 
-    let mut i = 0;
-    for a in 0..2 {
-        for b in 0..2 {
-            for c in 0..2 {
-                for d in 0..2 {
-                    input[i] = (a, b, c, d);
-                    i += 1;
+    print!("Enter multiplier: ");
+    io::stdout().flush().unwrap();
+    let mut QR = String::new();
+    io::stdin()
+        .read_line(&mut QR)
+        .expect("Failed to read input");
+    let mut QR = QR.trim().parse::<i32>().expect("Failed to parse input");
 
-                    let mut y = String::new();
-                    print!(" {}  {}  {}  {}  => ", a, b, c, d);
-                    io::stdout().flush().unwrap();
-                    io::stdin().read_line(&mut y).expect("Failed to read input");
-                    y = y.trim().to_string();
+    let mut AC = 0;
+    let mut QE = 0;
 
-                    if y == "1" {
-                        output.push(1);
-                    } else if y == "0" {
-                        output.push(0);
-                    } else {
-                        output.push(-1); // dont care
-                    }
-                }
-            }
-        }
+    println!("AC: {:b} QR: {:b} QE: {}", AC, QR, QE);
+    for _ in 0..8 {
+        let lsb = QR & 1;
+
+        if lsb == 1 && QE == 0 {
+            // Qn Qn+1 = 10
+            AC -= BR;
+        } else if lsb == 0 && QE == 1 {
+            // Qn Qn+1 = 01
+            AC += BR;
+        } // else 00 or 11
+
+        println!("AC: {:b} QR: {:b} QE: {}", AC, QR, QE);
+
+        QE = lsb;
+        let lsb = AC & 1; // ac's lsb
+        AC >>= 1;
+        QR >>= 1;
+        QR |= lsb << 7; // ac's lsb to qr's msb
     }
 
-    println!(concat!(
-        "Truth Table\n",
-        " A  B  C  D  |  Y\n",
-        "-------------+----"
-    ));
-    for i in 0..16 {
-        let inp = input[i];
-        println!(
-            " {}  {}  {}  {}  |  {}",
-            inp.0,
-            inp.1,
-            inp.2,
-            inp.3,
-            if output[i] != -1 {
-                output[i].to_string()
-            } else {
-                "x".to_string()
-            }
-        );
-    }
+    println!("AC: {:b} QR: {:b} QE: {}", AC, QR, QE);
 
-    // to kmap
-    let mut kmap = vec![vec![0; 4]; 4];
-    // for i in 0..16 {
-    //     if y[i] != -1 {
-    //         kmap[a[i] as usize * 2 + b[i] as usize][c[i] as usize * 2 + d[i] as usize] = y[i];
-    //     }
-    // }
+    let mut result = AC;
+    result <<= 8;
+    result |= QR;
 
-    let vals = vec![(0, 0), (0, 1), (1, 1), (1, 0)];
-    for i in 0..4 {
-        let ab = vals[i];
-        for j in 0..4 {
-            let cd = vals[j];
-
-            for k in 0..16 {
-                if input[k].0 == ab.0
-                    && input[k].1 == ab.1
-                    && input[k].2 == cd.0
-                    && input[k].3 == cd.1
-                {
-                    kmap[i][j] = output[k];
-                    break;
-                }
-            }
-        }
-    }
-
-    // print kmap
-    println!("Kmap");
-    for i in 0..4 {
-        for j in 0..4 {
-            print!(
-                " {} |",
-                match kmap[i][j] {
-                    -1 => "x",
-                    0 => "0",
-                    1 => "1",
-                    _ => unreachable!(),
-                }
-            );
-        }
-        println!();
-    }
+    println!("Result: {:016b}", result);
 }
